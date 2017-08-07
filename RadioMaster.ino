@@ -27,8 +27,8 @@ typedef struct
 {
   int masterID;
   int signalStrength;
-  int dataUsage = 0;
-  float batteryLevel;
+  unsigned long dataUsage;
+  unsigned long latency;
 }
 masterData;
 
@@ -43,7 +43,6 @@ void setup()
 {
   Serial.begin(9600);
   printf_begin();
-  printf("\n\rRadio Setup\n\r");
   radio.begin();
   radio.setDataRate(RF24_1MBPS);
   radio.setCRCLength(RF24_CRC_8);
@@ -51,7 +50,7 @@ void setup()
   radio.setChannel(101);
   radio.powerUp();
   radio.setAutoAck(true);
-  radio.printDetails();
+  //radio.printDetails();
   radio.setRetries(3,5); // delay, count
   radio.openWritingPipe(slaveAddress);
   radio.openReadingPipe(1, masterAddress);
@@ -65,13 +64,28 @@ void setup()
 
 void loop()
 {
+  if(Serial.available())
+  {
+    char c = Serial.read();
+    if(c == 'd')
+    {
+      Serial.print(getJSONData());
+    }
+    if(c == '*')
+    {
+      String dataUsage = Serial.readStringUntil(',');
+      String latency = Serial.readStringUntil(',');
+      String signalStrength = Serial.readStringUntil('\n');
+      myData.dataUsage = dataUsage.toInt();
+      myData.latency = latency.toInt();
+      myData.signalStrength = signalStrength.toInt();
+    }
+  }
   if(radio.available()) 
   {
     radio.read(&dataRecieved, sizeof(dataRecieved) );
     handleRecievedData();
-    printSlaveData();
     writeToSlaves();
-    printf("Data Usage: %i", myData.dataUsage);
   }
 }
 
@@ -157,10 +171,8 @@ void setSlaveInfo(int index, const data &dataRecieved)
 
 void removeSlave(int index) 
 {
-  Serial.println("Remove called");
   if(index > (MAX_SLAVES - 1))
   {
-    Serial.println("Invalid Index for removal");
     return;
   }
   data nullData;
@@ -184,20 +196,30 @@ void swap(data &a, data &b)
 
 void printSlaveData()
 {
+  Serial.println(getJSONData());
   Serial.println();
-  Serial.println("Slaves");
+}
+
+//Convert slave array to JSON string
+String getJSONData()
+{
+  String result = "[";
   for(int i = 0; i < numSlaves; i++)
   {
-    if(slaveData[i].sensorID != -1)
+    result += getJSONSlaveObject(i);
+    if(i < (numSlaves - 1))
     {
-      printRecievedData(slaveData[i]);
-      Serial.println();
-    }
-    else 
-    {
-      break;
+      result += ",";
     }
   }
-  Serial.println("End Slaves");
+  result += "]";
+  return result;
+}
+
+String getJSONSlaveObject(int i)
+{
+  String result = "{temperature:" + String(slaveData[i].temperature, 4) + ",humidity:" + String(slaveData[i].humidity,4)
+                  + ",sensorId:" + slaveData[i].sensorID + ",masterId:" + slaveData[i].masterID + "}";
+  return result;
 }
 

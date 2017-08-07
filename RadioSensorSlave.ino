@@ -3,6 +3,7 @@
 //For nrf24l01 radio module
 #include "nRF24L01.h"
 #include "RF24.h" 
+#include <SimpleTimer.h>
 
 #include "SPI.h" //spi interface
 #include <dht.h> //for dht 22 temp/humidity sensor
@@ -10,9 +11,10 @@
 
 
 #define DHT22_PIN 7
-#define SENSOR_ID 1
+#define SENSOR_ID 2
 
 dht DHT;
+SimpleTimer timer;
 RF24 radio(9,10);
 const byte slaveAddress[5] = {'R','x','A','A','A'};
 const byte masterAddress[5] = {'T','X','a','a','a'};
@@ -31,14 +33,17 @@ typedef struct
 {
   int masterID;
   int signalStrength;
-  int dataUsage;
-  float batteryLevel;
+  unsigned long dataUsage;
+  unsigned long latency;
 }
 masterData;
 
 data dataToSend;
 masterData dataRecieved;
 masterData currentMaster;
+bool masterAck = false;
+int masterAckTimeout = 5000;
+int ackTimerId;
 
 void setup(void)
 {
@@ -59,12 +64,13 @@ void setup(void)
   radio.openReadingPipe(1, slaveAddress);
   radio.setAutoAck(true);
   radio.printDetails();
+  timer.setInterval(2000, mainFunction);
+  ackTimerId = timer.setInterval(masterAckTimeout, checkMasterAck);
 }
 
 void loop(void)
 {
-  mainFunction();
-  delay(2000);
+  timer.run();
 }
 
 void mainFunction()
@@ -81,7 +87,6 @@ void radioWrite()
   dataToSend.masterID = currentMaster.masterID;
   
   bool ok = radio.write( &dataToSend,sizeof(dataToSend));
-  bool masterAck = false;
   radio.startListening();
   while (radio.available()) 
   {
@@ -104,12 +109,30 @@ void radioWrite()
       masterAck = true;
     }
   }
-  if(!masterAck)
+  if(masterAck)
   {
-    currentMaster.masterID = -1;
+    timer.restartTimer(ackTimerId);
   }
   Serial.print("Master Id:");
   Serial.println(currentMaster.masterID);
+}
+
+void checkMasterAck()
+{
+  if(!masterAck)
+  {
+    currentMaster.masterID = -1;  
+  }
+  masterAck = false;
+}
+
+bool switchMaster()
+{
+  float dataUsageScale = (float) currentMaster.dataUsage / dataRecieved.dataUsage;
+  float latencyScale = (float) currentMaster.latency / dataRecieved.latency;
+
+  float sum = (dataUsageScale + latencyScale) / 2;
+  return sum > 1.5;  
 }
 
 //Checks the humidity and temperature 
