@@ -1,3 +1,44 @@
 #graph {
 	border: 3px solid black;
+	width: 100%;
+	height: 100%;
+}
+
+#main-table {
+	width: 100%;
+	height: 100%;
+	margin: auto;
+}
+
+#data {
+	width: 30%;
+	vertical-align: top;
+}
+
+#graph-column {
+	width: 70%;
+}
+
+html {
+   margin: 0px;
+   height: 100%;
+   width: 100%;
+   font-size: 20px;
+   font-family: Arial, sans-serif;
+}
+
+body {
+   margin: 0px;
+   height: 100%;
+   width: 100%;
+}
+
+table {
+	height: 100%;
+}
+
+select {
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    -webkit-appearance: none;
 }

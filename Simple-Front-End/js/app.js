@@ -49,7 +49,7 @@ var refreshData = function(table) {
 		$.getJSON((apiUrl + 'masterdata/1'), function(json_data){
 			processJSON(json_data, "master", 1);
 			createCSV("master1");
-			var g1 = new Dygraph(document.getElementById("graph"), m1Csv); 
+			var g1 = createGraph("Master 1 Data", m1Csv); 
 			printMostRecentMasterValue();
 		});
 	}
@@ -58,7 +58,7 @@ var refreshData = function(table) {
 		$.getJSON((apiUrl + 'masterdata/2'), function(json_data){
 			processJSON(json_data, "master", 2);
 			createCSV("master2");
-			var g2 = new Dygraph(document.getElementById("graph"), m2Csv);
+			var g2 = createGraph("Master 2 Data", m2Csv);
 			printMostRecentMasterValue();
 		}); 
 	}
@@ -67,7 +67,7 @@ var refreshData = function(table) {
 		$.getJSON((apiUrl + 'slavedata/1'), function(json_data){
 			processJSON(json_data, "slave", 1);
 			createCSV("slave1");
-			var g3 = new Dygraph(document.getElementById("graph"), s1Csv);
+			var g3 = createGraph("Sensor 1 Data", s1Csv);
 			printMostRecentSlaveValue();
 		}); 
 	}
@@ -76,7 +76,7 @@ var refreshData = function(table) {
 		$.getJSON((apiUrl + 'slavedata/2'), function(json_data){
 			processJSON(json_data, "slave", 2);
 			createCSV("slave2");
-			var g4 = new Dygraph(document.getElementById("graph"), s2Csv);
+			var g4 = createGraph("Sensor 2 Data", s2Csv);
 			printMostRecentSlaveValue();
 		}); 
 	}
@@ -158,16 +158,37 @@ var createCSV = function(table) {
 
 };
 
+var createGraph = function(title, csv) {
+	return new Dygraph(document.getElementById("graph"), csv, {
+				legend: 'always',
+				animatedZooms: true,
+				title: title		
+			});
+};
+
 var getDateString = function(date) {
 	var month = date.getMonth() + 1;
 	var day = date.getDate();
+	var hour = date.getHours();
+	var minute = date.getMinutes();
+	var second = date.getSeconds();
+
 	if(month < 10) {
 		month = '0' + month;
 	}
 	if(day < 10) {
 		day = '0' + day;
 	}
-	return date.getFullYear() + '-' + month + '-' + day;
+	if(hour < 10) {
+		hour = '0' + hour;
+	}
+	if(minute < 10) {
+		minute = '0' + minute;
+	}
+	if(second < 10) {
+		second = '0' + second;
+	}
+	return date.getFullYear() + '/' + month + '/' + day + ' ' + hour + ':' + minute + ':' + second;
 };
 
 var clearData = function() {
@@ -194,17 +215,19 @@ var clearData = function() {
 };
 
 var printMostRecentMasterValue = function() {
-	$('#mostRecent').html("<b>Id: </b>" + mostRecentMasterData.id.N + "<br/>"+
-						  "<b>Latency: </b>" + mostRecentMasterData.latency.N + "<br/>"+
-						  "<b>Data Usage: </b>" + mostRecentMasterData.dataUsage.N + "<br/>" +
-						  "<b>Signal Strength: </b>" + mostRecentMasterData.signalStrength.N +"<br/>" +
+	$('#mostRecent').html("<br/><b>Most Recent Data</b><br/>" +
+						  "<b>Id: </b>" + mostRecentMasterData.id.N + "<br/>"+
+						  "<b>Latency (microseconds): </b>" + mostRecentMasterData.latency.N + "<br/>"+
+						  "<b>Data Usage (bytes): </b>" + mostRecentMasterData.dataUsage.N + "<br/>" +
+						  "<b>Signal Strength (dBm): </b>" + mostRecentMasterData.signalStrength.N +"<br/>" +
 						  "<b>Date: </b>" + new Date(parseInt(mostRecentMasterData.timestamp.N)));
 };
 
 var printMostRecentSlaveValue = function() {
-	$('#mostRecent').html("<b>Id: </b>" + mostRecentSlaveData.id.N + "<br/>" +
-						  "<b>Temperature: </b>" + mostRecentSlaveData.temperature.N + "<br/>" +
-						  "<b>Humidity: </b>" + mostRecentSlaveData.humidity.N + "<br/>" +
+	$('#mostRecent').html("<br/><b>Most Recent Data</b><br/>" + 
+						  "<b>Id: </b>" + mostRecentSlaveData.id.N + "<br/>" +
+						  "<b>Temperature(F): </b>" + cToF(parseFloat(mostRecentSlaveData.temperature.N)).toPrecision(4) + "<br/>" +
+						  "<b>Humidity(%): </b>" + mostRecentSlaveData.humidity.N + "<br/>" +
 						  "<b>Master Id: </b>" + mostRecentSlaveData.masterId.N + "<br/>" +
 						  "<b>Date: </b>" + new Date(parseInt(mostRecentSlaveData.timestamp.N)));
 };
